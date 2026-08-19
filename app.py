@@ -1,9 +1,34 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
 
 # Configuración de la página
 st.set_page_config(page_title="CRM & Control de Proyectos", layout="wide")
+
+# --- INYECCIÓN DE CSS PARA DISEÑO ---
+st.markdown("""
+    <style>
+    /* Ocultar elementos predeterminados de Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Estilo para las métricas */
+    div[data-testid="stMetricValue"] {
+        font-size: 2.2rem !important;
+        color: #0047AB; 
+        font-weight: bold;
+    }
+    
+    /* Estilo para la tabla */
+    div[data-testid="stDataFrame"] {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- SISTEMA DE LOGIN ---
 def check_password():
@@ -16,41 +41,58 @@ def check_password():
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
+        # LOGO: Pantalla de Login
+        if os.path.exists("logo.jpg"):
+            st.image("logo.jpg", width=250)
+            
         st.title("🔒 Acceso al CRM")
         st.text_input("Usuario", key="username")
         st.text_input("Contraseña", type="password", key="password")
         st.button("Ingresar", on_click=password_entered)
         return False
+        
     elif not st.session_state["password_correct"]:
+        # LOGO: Pantalla de Login (Si la clave es incorrecta)
+        if os.path.exists("logo.jpg"):
+            st.image("logo.jpg", width=250)
+            
         st.title("🔒 Acceso al CRM")
         st.text_input("Usuario", key="username")
         st.text_input("Contraseña", type="password", key="password")
         st.button("Ingresar", on_click=password_entered)
         st.error("😕 Usuario o contraseña incorrectos")
         return False
+        
     return True
 
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
+    # LOGO: Barra lateral, arriba de "Sesión iniciada"
+    if os.path.exists("logo.jpg"):
+        st.sidebar.image("logo.jpg", use_container_width=True)
+        
     st.sidebar.success(f"Sesión iniciada")
     
-    # Base de datos editable en memoria (Inicia vacía para que tú la llenes)
     if 'pipeline_data' not in st.session_state:
         st.session_state.pipeline_data = pd.DataFrame(
             columns=['ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Estado', 'Avance_%']
         )
-        # Agregamos una fila de ejemplo vacía para que puedas empezar a escribir
         st.session_state.pipeline_data.loc[0] = ['PRJ-001', '', '', 'Arquitectura', 0, 'Prospecto', 0]
 
-    st.title("📊 Dashboard General y Base de Datos")
+    # LOGO: Panel principal superior (Dashboard)
+    col_logo, col_title = st.columns([1, 4])
+    with col_logo:
+        if os.path.exists("logo.jpg"):
+            st.image("logo.jpg", width=150)
+    with col_title:
+        st.title("📊 Dashboard General y Base de Datos")
     
     st.markdown("### 1. Panel de Edición de Proyectos")
     st.info("💡 **Instrucciones:** Haz doble clic en cualquier celda para escribir. Para agregar un nuevo proyecto, haz clic en el botón '+' o en la fila vacía al final. Para borrar un proyecto, selecciona la casilla de la izquierda y presiona la tecla Delete/Suprimir o el ícono de la papelera.")
     
-    # Tabla interactiva editable
     st.session_state.pipeline_data = st.data_editor(
         st.session_state.pipeline_data, 
-        num_rows="dynamic", # Permite agregar y borrar filas
+        num_rows="dynamic", 
         use_container_width=True,
         key="editor_proyectos"
     )
@@ -58,12 +100,10 @@ if check_password():
     st.markdown("---")
     st.markdown("### 2. Gráficos y Resumen Automático")
     
-    # Procesar datos para los gráficos
     df = st.session_state.pipeline_data.copy()
     df['Avance_%'] = pd.to_numeric(df['Avance_%'], errors='coerce').fillna(0)
     df['Presupuesto_$'] = pd.to_numeric(df['Presupuesto_$'], errors='coerce').fillna(0)
 
-    # Mostrar métricas solo si hay proyectos con nombre
     df_validos = df[df['Nombre_Proyecto'] != '']
     
     col1, col2, col3 = st.columns(3)
