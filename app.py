@@ -42,14 +42,14 @@ def check_password():
 
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
-    # 1. Base de datos inicial
+    # 1. Base de datos inicial con los nuevos campos
     if 'crm_db' not in st.session_state:
         st.session_state.crm_db = pd.DataFrame(columns=[
-            'ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Avance_%',
+            'ID_Proyecto', 'Cliente', 'Nombre_Contacto', 'Telefono_Contacto', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Avance_%',
             'Responsable', 'Prioridad', 'Fecha_Inicio', 'Fecha_Cierre_Est', 
             'Estado_Detallado', 'Acciones_Realizadas', 'Proximas_Acciones', 'Observaciones'
         ])
-        st.session_state.crm_db.loc[0] = ['PRJ-001', 'Ejemplo S.A.', 'Proyecto Alfa', 'Arquitectura', 1500, 25, 'Nico', 'Alta', str(date.today()), '', 'Planificación', 'Diseño inicial', 'Aprobar planos', 'Ninguna']
+        st.session_state.crm_db.loc[0] = ['PRJ-001', 'Ejemplo S.A.', 'Juan Pérez', '0991234567', 'Proyecto Alfa', 'Arquitectura', 1500, 25, 'Nico', 'Alta', str(date.today()), '', 'Planificación', 'Diseño inicial', 'Aprobar planos', 'Ninguna']
 
     # 2. Control de Vistas (Páginas)
     if 'vista_actual' not in st.session_state:
@@ -103,19 +103,31 @@ if check_password():
         with col_tit:
             st.title(f"📂 Detalles: {nombre_proy}")
         with col_borrar:
-            st.write("") # Espaciador
+            st.write("") 
             if st.button("🗑️ Borrar Proyecto"):
                 st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=True)
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
 
         with st.form("form_detalles"):
+            st.markdown("#### Datos de Identificación y Contacto")
+            c_id1, c_id2, c_id3, c_id4 = st.columns(4)
+            with c_id1: act_cliente = st.text_input("Cliente / Empresa", value=st.session_state.crm_db.at[idx, 'Cliente'])
+            with c_id2: act_contacto = st.text_input("Nombre de Contacto", value=st.session_state.crm_db.at[idx, 'Nombre_Contacto'])
+            with c_id3: act_telefono = st.text_input("Teléfono", value=st.session_state.crm_db.at[idx, 'Telefono_Contacto'])
+            with c_id4: 
+                sectores = ["Arquitectura", "Construcción", "Consultoría", "Corretaje"]
+                sect_actual = st.session_state.crm_db.at[idx, 'Sector']
+                act_sector = st.selectbox("Sector", sectores, index=sectores.index(sect_actual) if sect_actual in sectores else 0)
+
+            st.markdown("#### Estado y Planificación")
             c1, c2, c3, c4 = st.columns(4)
             with c1: act_avance = st.number_input("Avance (%)", 0, 100, int(st.session_state.crm_db.at[idx, 'Avance_%']))
             with c2: act_resp = st.text_input("Responsable", value=st.session_state.crm_db.at[idx, 'Responsable'])
             with c3: act_prio = st.selectbox("Prioridad", ["Alta", "Media", "Baja"], index=["Alta", "Media", "Baja"].index(st.session_state.crm_db.at[idx, 'Prioridad']) if st.session_state.crm_db.at[idx, 'Prioridad'] in ["Alta", "Media", "Baja"] else 1)
             with c4: act_cierre = st.text_input("Fecha Cierre Est.", value=st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est'])
             
+            st.markdown("#### Control de Ejecución")
             colA, colB = st.columns(2)
             with colA:
                 act_estado = st.text_area("Estado Actual (Descripción Detallada)", value=st.session_state.crm_db.at[idx, 'Estado_Detallado'], height=120)
@@ -125,6 +137,10 @@ if check_password():
                 act_obs = st.text_area("Observaciones Adicionales", value=st.session_state.crm_db.at[idx, 'Observaciones'], height=120)
             
             if st.form_submit_button("💾 Guardar Cambios"):
+                st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
+                st.session_state.crm_db.at[idx, 'Nombre_Contacto'] = act_contacto
+                st.session_state.crm_db.at[idx, 'Telefono_Contacto'] = act_telefono
+                st.session_state.crm_db.at[idx, 'Sector'] = act_sector
                 st.session_state.crm_db.at[idx, 'Avance_%'] = act_avance
                 st.session_state.crm_db.at[idx, 'Responsable'] = act_resp
                 st.session_state.crm_db.at[idx, 'Prioridad'] = act_prio
@@ -149,12 +165,15 @@ if check_password():
         
         with st.form("form_nuevo_proyecto"):
             st.markdown("### Datos Básicos del Nuevo Proyecto")
+            
             c_1, c_2, c_3 = st.columns(3)
             with c_1:
                 n_id = st.text_input("ID Proyecto")
                 n_cli = st.text_input("Cliente / Empresa")
-            with c_2:
                 n_nom = st.text_input("Nombre del Proyecto")
+            with c_2:
+                n_cont = st.text_input("Nombre de Contacto")
+                n_tel = st.text_input("Teléfono")
                 n_sec = st.selectbox("Sector", ["Arquitectura", "Construcción", "Consultoría", "Corretaje"])
             with c_3:
                 n_pres = st.number_input("Presupuesto ($)", min_value=0.0)
@@ -165,8 +184,8 @@ if check_password():
                     st.error("Por favor ingresa al menos el ID y el Nombre del Proyecto.")
                 else:
                     nueva_fila = {
-                        'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Proyecto': n_nom, 
-                        'Sector': n_sec, 'Presupuesto_$': n_pres, 'Avance_%': 0,
+                        'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Contacto': n_cont, 'Telefono_Contacto': n_tel, 
+                        'Nombre_Proyecto': n_nom, 'Sector': n_sec, 'Presupuesto_$': n_pres, 'Avance_%': 0,
                         'Responsable': n_resp, 'Prioridad': 'Media', 'Fecha_Inicio': str(date.today()), 
                         'Fecha_Cierre_Est': '', 'Estado_Detallado': '', 'Acciones_Realizadas': '', 
                         'Proximas_Acciones': '', 'Observaciones': ''
