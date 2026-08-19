@@ -42,7 +42,7 @@ def check_password():
 
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
-    # 1. Base de datos inicial con los nuevos campos
+    # 1. Base de datos inicial
     if 'crm_db' not in st.session_state:
         st.session_state.crm_db = pd.DataFrame(columns=[
             'ID_Proyecto', 'Cliente', 'Nombre_Contacto', 'Telefono_Contacto', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Avance_%',
@@ -51,21 +51,20 @@ if check_password():
         ])
         st.session_state.crm_db.loc[0] = ['PRJ-001', 'Ejemplo S.A.', 'Juan Pérez', '0991234567', 'Proyecto Alfa', 'Arquitectura', 1500.0, 25, 'Nico', 'Alta', str(date.today()), '', 'Planificación', 'Diseño inicial', 'Aprobar planos', 'Ninguna']
 
-    # 2. Control de Vistas (Páginas)
+    # 2. Control de Vistas
     if 'vista_actual' not in st.session_state:
         st.session_state.vista_actual = 'resumen'
     if 'proyecto_activo' not in st.session_state:
         st.session_state.proyecto_activo = None
 
     # ====================================================
-    # VISTA 1: RESUMEN GENERAL (PANTALLA PRINCIPAL LIMPIA)
+    # VISTA 1: RESUMEN GENERAL 
     # ====================================================
     if st.session_state.vista_actual == 'resumen':
         st.title("📊 Resumen General de Proyectos")
         
         columnas_basicas = ['ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Responsable', 'Presupuesto_$', 'Avance_%']
         
-        # Tabla con formato de Moneda y Barra de Progreso
         st.dataframe(
             st.session_state.crm_db[columnas_basicas], 
             use_container_width=True, 
@@ -73,7 +72,7 @@ if check_password():
             column_config={
                 "Presupuesto_$": st.column_config.NumberColumn(
                     "Presupuesto ($)",
-                    format="$ %,.2f" # Formato de moneda con separador de miles
+                    format="$ %,.2f" 
                 ),
                 "Avance_%": st.column_config.ProgressColumn(
                     "Avance (%)",
@@ -107,7 +106,7 @@ if check_password():
                 st.rerun()
 
     # ====================================================
-    # VISTA 2: FICHA DETALLADA (SOLO SE VE AL INGRESAR)
+    # VISTA 2: FICHA DETALLADA 
     # ====================================================
     elif st.session_state.vista_actual == 'detalles':
         if st.button("🔙 Volver al Resumen"):
@@ -132,9 +131,9 @@ if check_password():
             with c_p1: act_nombre = st.text_input("Nombre del Proyecto", value=st.session_state.crm_db.at[idx, 'Nombre_Proyecto'])
             with c_p2: act_cliente = st.text_input("Cliente / Empresa", value=st.session_state.crm_db.at[idx, 'Cliente'])
             with c_p3: 
-                # Valor actual para edición, preformateado
                 val_presupuesto = float(st.session_state.crm_db.at[idx, 'Presupuesto_$']) if pd.notna(st.session_state.crm_db.at[idx, 'Presupuesto_$']) else 0.0
-                act_presupuesto = st.number_input("Presupuesto ($)", min_value=0.0, value=val_presupuesto)
+                # APLICAMOS FORMATO CON 2 DECIMALES Y SALTO DE 100
+                act_presupuesto = st.number_input("Presupuesto ($)", min_value=0.0, value=val_presupuesto, format="%.2f", step=100.0)
 
             c_id1, c_id2, c_id3, c_id4 = st.columns(4)
             with c_id1: act_contacto = st.text_input("Nombre de Contacto", value=st.session_state.crm_db.at[idx, 'Nombre_Contacto'])
@@ -202,8 +201,8 @@ if check_password():
                 n_tel = st.text_input("Teléfono")
                 n_sec = st.selectbox("Sector", ["Arquitectura", "Construcción", "Consultoría", "Corretaje"])
             with c_3:
-                # El parámetro value=None deja la caja totalmente vacía
-                n_pres = st.number_input("Presupuesto ($)", min_value=0.0, value=None, placeholder="Ej: 1500")
+                # APLICAMOS FORMATO CON 2 DECIMALES
+                n_pres = st.number_input("Presupuesto ($)", min_value=0.0, value=None, format="%.2f", step=100.0, placeholder="Ej: 1500.00")
                 n_resp = st.text_input("Responsable")
                 
             if st.form_submit_button("✅ Guardar Nuevo Proyecto"):
@@ -213,7 +212,7 @@ if check_password():
                     nueva_fila = {
                         'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Contacto': n_cont, 'Telefono_Contacto': n_tel, 
                         'Nombre_Proyecto': n_nom, 'Sector': n_sec, 
-                        'Presupuesto_$': n_pres if n_pres is not None else 0.0, # Si lo dejan vacío, guarda 0
+                        'Presupuesto_$': n_pres if n_pres is not None else 0.0, 
                         'Avance_%': 0, 'Responsable': n_resp, 'Prioridad': 'Media', 'Fecha_Inicio': str(date.today()), 
                         'Fecha_Cierre_Est': '', 'Estado_Detallado': '', 'Acciones_Realizadas': '', 
                         'Proximas_Acciones': '', 'Observaciones': ''
