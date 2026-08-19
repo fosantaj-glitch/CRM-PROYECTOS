@@ -1,91 +1,81 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import datetime
 
 # Configuración de la página
 st.set_page_config(page_title="CRM & Control de Proyectos", layout="wide")
 
-# Datos simulados (Puedes conectarlo a una base de datos SQL o Firebase luego)
-if 'pipeline_data' not in st.session_state:
-    st.session_state.pipeline_data = pd.DataFrame({
-        'ID': ['PRJ-001', 'PRJ-002', 'PRJ-003'],
-        'Cliente': ['Inmobiliaria Sur', 'Constructora XYZ', 'Consultores ABC'],
-        'Proyecto': ['Torre Residencial', 'Ampliación Bodegas', 'Estudio de Suelos'],
-        'Sector': ['Arquitectura', 'Construcción', 'Consultoría'],
-        'Presupuesto': [250000, 850000, 15000],
-        'Estado': ['En Ejecución', 'Planificación', 'Propuesta'],
-        'Avance': [35, 15, 0]
-    })
+# --- SISTEMA DE LOGIN ---
+def check_password():
+    def password_entered():
+        if st.session_state["username"] in st.secrets["passwords"] and \
+           st.session_state["password"] == st.secrets["passwords"][st.session_state["username"]]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
 
-if 'tasks_data' not in st.session_state:
-    st.session_state.tasks_data = pd.DataFrame({
-        'ID_Proyecto': ['PRJ-001', 'PRJ-001', 'PRJ-001', 'PRJ-002', 'PRJ-002'],
-        'Fase': ['Levantamiento', 'Diseño', 'Aprobaciones', 'Preparación', 'Cimentación'],
-        'Inicio': ['2026-08-01', '2026-08-16', '2026-09-15', '2026-08-10', '2026-08-30'],
-        'Fin': ['2026-08-15', '2026-09-14', '2026-10-30', '2026-08-29', '2026-10-08'],
-        'Responsable': ['Nico', 'Mateo', 'Nico', 'Mateo', 'Mateo'],
-        'Avance_Fase': [100, 50, 0, 15, 0],
-        'Anotaciones': ['Estudio de suelos sin novedades.', 'Cliente solicitó ajustes.', '', 'Retraso de 1 día por clima.', '']
-    })
+    if "password_correct" not in st.session_state:
+        st.title("🔒 Acceso al CRM")
+        st.text_input("Usuario", key="username")
+        st.text_input("Contraseña", type="password", key="password")
+        st.button("Ingresar", on_click=password_entered)
+        return False
+    elif not st.session_state["password_correct"]:
+        st.title("🔒 Acceso al CRM")
+        st.text_input("Usuario", key="username")
+        st.text_input("Contraseña", type="password", key="password")
+        st.button("Ingresar", on_click=password_entered)
+        st.error("😕 Usuario o contraseña incorrectos")
+        return False
+    return True
 
-# Barra lateral de navegación
-st.sidebar.title("Navegación CRM")
-menu = st.sidebar.radio("Ir a:", ["Dashboard General", "Detalle de Proyecto"])
+# --- EJECUCIÓN DEL CRM ---
+if check_password():
+    st.sidebar.success(f"Sesión iniciada")
+    
+    # Base de datos editable en memoria (Inicia vacía para que tú la llenes)
+    if 'pipeline_data' not in st.session_state:
+        st.session_state.pipeline_data = pd.DataFrame(
+            columns=['ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Estado', 'Avance_%']
+        )
+        # Agregamos una fila de ejemplo vacía para que puedas empezar a escribir
+        st.session_state.pipeline_data.loc[0] = ['PRJ-001', '', '', 'Arquitectura', 0, 'Prospecto', 0]
 
-# ==========================================
-# VISTA 1: DASHBOARD GENERAL
-# ==========================================
-if menu == "Dashboard General":
-    st.title("📊 Pipeline y Dashboard General")
+    st.title("📊 Dashboard General y Base de Datos")
     
-    # Métricas clave
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Proyectos Activos", len(st.session_state.pipeline_data))
-    col2.metric("Presupuesto Total", f"${st.session_state.pipeline_data['Presupuesto'].sum():,.2f}")
-    col3.metric("Promedio de Avance", f"{st.session_state.pipeline_data['Avance'].mean():.1f}%")
+    st.markdown("### 1. Panel de Edición de Proyectos")
+    st.info("💡 **Instrucciones:** Haz doble clic en cualquier celda para escribir. Para agregar un nuevo proyecto, haz clic en el botón '+' o en la fila vacía al final. Para borrar un proyecto, selecciona la casilla de la izquierda y presiona la tecla Delete/Suprimir o el ícono de la papelera.")
     
-    st.markdown("### Listado de Proyectos")
-    st.dataframe(st.session_state.pipeline_data, use_container_width=True)
-    
-    st.markdown("### Avance Global por Proyecto")
-    fig_bar = px.bar(st.session_state.pipeline_data, x='Proyecto', y='Avance', color='Sector', 
-                     text='Avance', title="Porcentaje de Completitud", range_y=[0,100])
-    st.plotly_chart(fig_bar, use_container_width=True)
+    # Tabla interactiva editable
+    st.session_state.pipeline_data = st.data_editor(
+        st.session_state.pipeline_data, 
+        num_rows="dynamic", # Permite agregar y borrar filas
+        use_container_width=True,
+        key="editor_proyectos"
+    )
 
-# ==========================================
-# VISTA 2: DETALLE DE PROYECTO (Ruta Crítica)
-# ==========================================
-elif menu == "Detalle de Proyecto":
-    st.title("📂 Control Integral del Proyecto")
-    
-    # Selector de proyecto
-    proyecto_seleccionado = st.selectbox("Selecciona un proyecto a gestionar:", st.session_state.pipeline_data['ID'].unique())
-    
-    # Filtrar datos del proyecto seleccionado
-    info_proj = st.session_state.pipeline_data[st.session_state.pipeline_data['ID'] == proyecto_seleccionado].iloc[0]
-    st.markdown(f"**Cliente:** {info_proj['Cliente']} | **Sector:** {info_proj['Sector']} | **Presupuesto:** ${info_proj['Presupuesto']:,.2f}")
-    
     st.markdown("---")
-    st.markdown("### Cronograma y Tareas (Ruta Crítica)")
+    st.markdown("### 2. Gráficos y Resumen Automático")
     
-    df_tareas = st.session_state.tasks_data[st.session_state.tasks_data['ID_Proyecto'] == proyecto_seleccionado].copy()
+    # Procesar datos para los gráficos
+    df = st.session_state.pipeline_data.copy()
+    df['Avance_%'] = pd.to_numeric(df['Avance_%'], errors='coerce').fillna(0)
+    df['Presupuesto_$'] = pd.to_numeric(df['Presupuesto_$'], errors='coerce').fillna(0)
+
+    # Mostrar métricas solo si hay proyectos con nombre
+    df_validos = df[df['Nombre_Proyecto'] != '']
     
-    if not df_tareas.empty:
-        # Gráfico de Gantt para la Ruta Crítica
-        df_tareas['Inicio'] = pd.to_datetime(df_tareas['Inicio'])
-        df_tareas['Fin'] = pd.to_datetime(df_tareas['Fin'])
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Proyectos Registrados", len(df_validos))
+    col2.metric("Presupuesto Total", f"${df_validos['Presupuesto_$'].sum():,.2f}")
+    
+    if not df_validos.empty:
+        col3.metric("Promedio de Avance", f"{df_validos['Avance_%'].mean():.1f}%")
         
-        fig_gantt = px.timeline(df_tareas, x_start="Inicio", x_end="Fin", y="Fase", color="Responsable", 
-                                title="Gráfico de Gantt - Ruta Crítica del Proyecto", hover_data=["Avance_Fase"])
-        fig_gantt.update_yaxes(autorange="reversed") # Tareas en orden descendente
-        st.plotly_chart(fig_gantt, use_container_width=True)
-        
-        # Gestor de Anotaciones y Observaciones
-        st.markdown("### Gestión de Fases y Anotaciones")
-        for index, row in df_tareas.iterrows():
-            with st.expander(f"Fase: {row['Fase']} - Responsable: {row['Responsable']} ({row['Avance_Fase']}% completado)"):
-                st.text_area("Anotaciones y Observaciones del Equipo:", value=row['Anotaciones'], height=100, key=f"obs_{index}")
-                st.slider("Actualizar Avance (%)", 0, 100, int(row['Avance_Fase']), key=f"av_{index}")
+        fig_bar = px.bar(df_validos, x='Nombre_Proyecto', y='Avance_%', color='Sector', 
+                         text='Avance_%', title="Porcentaje de Completitud por Proyecto", range_y=[0,100])
+        st.plotly_chart(fig_bar, use_container_width=True)
     else:
-        st.info("No hay tareas registradas para este proyecto aún.")
+        col3.metric("Promedio de Avance", "0%")
+        st.warning("Ingresa el nombre de tus proyectos en la tabla de arriba para generar los gráficos.")
