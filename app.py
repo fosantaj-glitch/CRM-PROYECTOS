@@ -1,0 +1,91 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import datetime
+
+# Configuración de la página
+st.set_page_config(page_title="CRM & Control de Proyectos", layout="wide")
+
+# Datos simulados (Puedes conectarlo a una base de datos SQL o Firebase luego)
+if 'pipeline_data' not in st.session_state:
+    st.session_state.pipeline_data = pd.DataFrame({
+        'ID': ['PRJ-001', 'PRJ-002', 'PRJ-003'],
+        'Cliente': ['Inmobiliaria Sur', 'Constructora XYZ', 'Consultores ABC'],
+        'Proyecto': ['Torre Residencial', 'Ampliación Bodegas', 'Estudio de Suelos'],
+        'Sector': ['Arquitectura', 'Construcción', 'Consultoría'],
+        'Presupuesto': [250000, 850000, 15000],
+        'Estado': ['En Ejecución', 'Planificación', 'Propuesta'],
+        'Avance': [35, 15, 0]
+    })
+
+if 'tasks_data' not in st.session_state:
+    st.session_state.tasks_data = pd.DataFrame({
+        'ID_Proyecto': ['PRJ-001', 'PRJ-001', 'PRJ-001', 'PRJ-002', 'PRJ-002'],
+        'Fase': ['Levantamiento', 'Diseño', 'Aprobaciones', 'Preparación', 'Cimentación'],
+        'Inicio': ['2026-08-01', '2026-08-16', '2026-09-15', '2026-08-10', '2026-08-30'],
+        'Fin': ['2026-08-15', '2026-09-14', '2026-10-30', '2026-08-29', '2026-10-08'],
+        'Responsable': ['Nico', 'Mateo', 'Nico', 'Mateo', 'Mateo'],
+        'Avance_Fase': [100, 50, 0, 15, 0],
+        'Anotaciones': ['Estudio de suelos sin novedades.', 'Cliente solicitó ajustes.', '', 'Retraso de 1 día por clima.', '']
+    })
+
+# Barra lateral de navegación
+st.sidebar.title("Navegación CRM")
+menu = st.sidebar.radio("Ir a:", ["Dashboard General", "Detalle de Proyecto"])
+
+# ==========================================
+# VISTA 1: DASHBOARD GENERAL
+# ==========================================
+if menu == "Dashboard General":
+    st.title("📊 Pipeline y Dashboard General")
+    
+    # Métricas clave
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Proyectos Activos", len(st.session_state.pipeline_data))
+    col2.metric("Presupuesto Total", f"${st.session_state.pipeline_data['Presupuesto'].sum():,.2f}")
+    col3.metric("Promedio de Avance", f"{st.session_state.pipeline_data['Avance'].mean():.1f}%")
+    
+    st.markdown("### Listado de Proyectos")
+    st.dataframe(st.session_state.pipeline_data, use_container_width=True)
+    
+    st.markdown("### Avance Global por Proyecto")
+    fig_bar = px.bar(st.session_state.pipeline_data, x='Proyecto', y='Avance', color='Sector', 
+                     text='Avance', title="Porcentaje de Completitud", range_y=[0,100])
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+# ==========================================
+# VISTA 2: DETALLE DE PROYECTO (Ruta Crítica)
+# ==========================================
+elif menu == "Detalle de Proyecto":
+    st.title("📂 Control Integral del Proyecto")
+    
+    # Selector de proyecto
+    proyecto_seleccionado = st.selectbox("Selecciona un proyecto a gestionar:", st.session_state.pipeline_data['ID'].unique())
+    
+    # Filtrar datos del proyecto seleccionado
+    info_proj = st.session_state.pipeline_data[st.session_state.pipeline_data['ID'] == proyecto_seleccionado].iloc[0]
+    st.markdown(f"**Cliente:** {info_proj['Cliente']} | **Sector:** {info_proj['Sector']} | **Presupuesto:** ${info_proj['Presupuesto']:,.2f}")
+    
+    st.markdown("---")
+    st.markdown("### Cronograma y Tareas (Ruta Crítica)")
+    
+    df_tareas = st.session_state.tasks_data[st.session_state.tasks_data['ID_Proyecto'] == proyecto_seleccionado].copy()
+    
+    if not df_tareas.empty:
+        # Gráfico de Gantt para la Ruta Crítica
+        df_tareas['Inicio'] = pd.to_datetime(df_tareas['Inicio'])
+        df_tareas['Fin'] = pd.to_datetime(df_tareas['Fin'])
+        
+        fig_gantt = px.timeline(df_tareas, x_start="Inicio", x_end="Fin", y="Fase", color="Responsable", 
+                                title="Gráfico de Gantt - Ruta Crítica del Proyecto", hover_data=["Avance_Fase"])
+        fig_gantt.update_yaxes(autorange="reversed") # Tareas en orden descendente
+        st.plotly_chart(fig_gantt, use_container_width=True)
+        
+        # Gestor de Anotaciones y Observaciones
+        st.markdown("### Gestión de Fases y Anotaciones")
+        for index, row in df_tareas.iterrows():
+            with st.expander(f"Fase: {row['Fase']} - Responsable: {row['Responsable']} ({row['Avance_Fase']}% completado)"):
+                st.text_area("Anotaciones y Observaciones del Equipo:", value=row['Anotaciones'], height=100, key=f"obs_{index}")
+                st.slider("Actualizar Avance (%)", 0, 100, int(row['Avance_Fase']), key=f"av_{index}")
+    else:
+        st.info("No hay tareas registradas para este proyecto aún.")
