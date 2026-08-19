@@ -116,7 +116,7 @@ if check_password():
         
         lista_ids = st.session_state.crm_db['ID_Proyecto'].tolist()
         
-        if no lista_ids or all(id == '' for id in lista_ids):
+        if not lista_ids or all(id == '' for id in lista_ids):
             st.warning("Aún no hay proyectos. Agrega uno en el Pipeline General primero.")
         else:
             # Selector de proyecto
