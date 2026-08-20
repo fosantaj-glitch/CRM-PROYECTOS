@@ -74,7 +74,7 @@ st.markdown("""
 # ==========================================
 # ⚙️ CONFIGURACIONES PRINCIPALES
 # ==========================================
-NOMBRE_LOGO = "logo.png" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GITHUB
+NOMBRE_LOGO = "logo.jpg" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GITHUB
 URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec" # <-- PEGA TU ENLACE LARGO AQUÍ
 
 
