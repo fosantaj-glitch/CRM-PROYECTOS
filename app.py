@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-import os
 from datetime import date
-from streamlit_gsheets import GSheetsConnection
+import requests
+import json
 
 # Configuración de la página
 st.set_page_config(page_title="CRM Proyectos", layout="wide")
@@ -16,8 +16,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# URL de tu base de datos en Google Drive
-URL_BASE_DATOS = "https://docs.google.com/spreadsheets/d/1s469AqAIFQtGCRGRZG-CXXuLLpbBkDi8dOhYiy0Wv34"
+# PEGA AQUÍ TU ENLACE DE APPS SCRIPT
+URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec"
+
+# --- FUNCIONES DE BASE DE DATOS (Apps Script) ---
+def cargar_datos():
+    try:
+        res = requests.get(URL_WEB_APP)
+        data = res.json()
+        if len(data) > 1:
+            return pd.DataFrame(data[1:], columns=data[0])
+        elif len(data) == 1:
+            return pd.DataFrame(columns=data[0])
+    except:
+        pass
+    return pd.DataFrame(columns=[
+        'ID_Proyecto', 'Cliente', 'Nombre_Contacto', 'Telefono_Contacto', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Avance_%',
+        'Responsable', 'Prioridad', 'Fecha_Inicio', 'Fecha_Cierre_Est', 
+        'Estado_Detallado', 'Acciones_Realizadas', 'Proximas_Acciones', 'Observaciones'
+    ])
+
+def guardar_datos(df):
+    df_clean = df.fillna("")
+    data_list = [df_clean.columns.tolist()]
+    for row in df_clean.itertuples(index=False, name=None):
+        data_list.append(list(row))
+    
+    payload = {"action": "overwrite", "data": data_list}
+    requests.post(URL_WEB_APP, json=payload)
 
 # --- SISTEMA DE LOGIN ---
 def check_password():
@@ -46,25 +72,9 @@ def check_password():
 
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
-    # Conexión oficial a Google Sheets
-    conn = st.connection("gsheets", type=GSheetsConnection)
-
-    # 1. Cargar Base de Datos desde Google Sheets (Solo al inicio)
+    # 1. Cargar Base de Datos
     if 'crm_db' not in st.session_state:
-        try:
-            # ttl=0 fuerza a leer los datos más recientes en tiempo real
-            st.session_state.crm_db = conn.read(spreadsheet=URL_BASE_DATOS, ttl=0)
-            
-            # Si la hoja está completamente vacía (sin encabezados), los creamos
-            if st.session_state.crm_db.empty and len(st.session_state.crm_db.columns) < 2:
-                st.session_state.crm_db = pd.DataFrame(columns=[
-                    'ID_Proyecto', 'Cliente', 'Nombre_Contacto', 'Telefono_Contacto', 'Nombre_Proyecto', 'Sector', 'Presupuesto_$', 'Avance_%',
-                    'Responsable', 'Prioridad', 'Fecha_Inicio', 'Fecha_Cierre_Est', 
-                    'Estado_Detallado', 'Acciones_Realizadas', 'Proximas_Acciones', 'Observaciones'
-                ])
-        except Exception as e:
-            st.error("⚠️ Error de conexión. ¿Compartiste la hoja de cálculo con el correo de servicio de Streamlit?")
-            st.stop()
+        st.session_state.crm_db = cargar_datos()
 
     # 2. Control de Vistas
     if 'vista_actual' not in st.session_state:
@@ -80,8 +90,11 @@ if check_password():
         
         columnas_basicas = ['ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Responsable', 'Presupuesto_$', 'Avance_%']
         
-        # Validar que haya datos antes de mostrar la tabla
         if not st.session_state.crm_db.empty:
+            # Asegurar tipos numéricos para la vista
+            st.session_state.crm_db['Presupuesto_$'] = pd.to_numeric(st.session_state.crm_db['Presupuesto_$'], errors='coerce').fillna(0)
+            st.session_state.crm_db['Avance_%'] = pd.to_numeric(st.session_state.crm_db['Avance_%'], errors='coerce').fillna(0).astype(int)
+
             st.dataframe(
                 st.session_state.crm_db[columnas_basicas], 
                 use_container_width=True, 
@@ -92,7 +105,7 @@ if check_password():
                 }
             )
         else:
-            st.info("No hay proyectos registrados en tu base de datos todavía. Haz clic en 'Crear Nuevo Proyecto'.")
+            st.info("No hay proyectos registrados en tu base de datos todavía.")
 
         st.markdown("---")
         
@@ -131,10 +144,8 @@ if check_password():
         with col_borrar:
             st.write("") 
             if st.button("🗑️ Borrar Proyecto"):
-                # Eliminar de la memoria
                 st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=True)
-                # Guardar en Google Sheets
-                conn.update(spreadsheet=URL_BASE_DATOS, data=st.session_state.crm_db)
+                guardar_datos(st.session_state.crm_db)
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
 
@@ -144,7 +155,8 @@ if check_password():
             with c_p1: act_nombre = st.text_input("Nombre del Proyecto", value=str(st.session_state.crm_db.at[idx, 'Nombre_Proyecto']))
             with c_p2: act_cliente = st.text_input("Cliente / Empresa", value=str(st.session_state.crm_db.at[idx, 'Cliente']))
             with c_p3: 
-                val_presupuesto = float(st.session_state.crm_db.at[idx, 'Presupuesto_$']) if pd.notna(st.session_state.crm_db.at[idx, 'Presupuesto_$']) else 0.0
+                try: val_presupuesto = float(st.session_state.crm_db.at[idx, 'Presupuesto_$'])
+                except: val_presupuesto = 0.0
                 act_presupuesto = st.number_input("Presupuesto ($)", min_value=0.0, value=val_presupuesto, format="%.2f", step=100.0)
 
             c_id1, c_id2, c_id3, c_id4 = st.columns(4)
@@ -158,7 +170,8 @@ if check_password():
 
             st.markdown("#### 2. Estado y Planificación")
             c1, c2, c3 = st.columns(3)
-            val_avance = int(st.session_state.crm_db.at[idx, 'Avance_%']) if pd.notna(st.session_state.crm_db.at[idx, 'Avance_%']) else 0
+            try: val_avance = int(st.session_state.crm_db.at[idx, 'Avance_%'])
+            except: val_avance = 0
             with c1: act_avance = st.number_input("Avance (%)", 0, 100, val_avance)
             with c2: 
                 prio_actual = str(st.session_state.crm_db.at[idx, 'Prioridad'])
@@ -177,7 +190,7 @@ if check_password():
             if st.form_submit_button("💾 Guardar Todos los Cambios"):
                 st.session_state.crm_db.at[idx, 'Nombre_Proyecto'] = act_nombre
                 st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
-                st.session_state.crm_db.at[idx, 'Presupuesto_$'] = float(act_presupuesto)
+                st.session_state.crm_db.at[idx, 'Presupuesto_$'] = act_presupuesto
                 st.session_state.crm_db.at[idx, 'Nombre_Contacto'] = act_contacto
                 st.session_state.crm_db.at[idx, 'Telefono_Contacto'] = act_telefono
                 st.session_state.crm_db.at[idx, 'Sector'] = act_sector
@@ -190,10 +203,10 @@ if check_password():
                 st.session_state.crm_db.at[idx, 'Proximas_Acciones'] = act_proximas
                 st.session_state.crm_db.at[idx, 'Observaciones'] = act_obs
                 
-                # GUARDAR EN GOOGLE SHEETS
-                conn.update(spreadsheet=URL_BASE_DATOS, data=st.session_state.crm_db)
+                # GUARDAR EN GOOGLE SHEETS VIA APPS SCRIPT
+                guardar_datos(st.session_state.crm_db)
                 
-                st.success("Cambios guardados en la Nube correctamente.")
+                st.success("Cambios guardados en Google Drive correctamente.")
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
 
@@ -220,7 +233,7 @@ if check_password():
                 n_tel = st.text_input("Teléfono")
                 n_sec = st.selectbox("Sector", ["Arquitectura", "Construcción", "Consultoría", "Corretaje"])
             with c_3:
-                n_pres = st.number_input("Presupuesto ($)", min_value=0.0, value=None, format="%.2f", step=100.0, placeholder="Ej: 1500.00")
+                n_pres = st.number_input("Presupuesto ($)", min_value=0.0, value=None, format="%.2f", step=100.0)
                 n_resp = st.text_input("Responsable")
                 
             if st.form_submit_button("✅ Guardar Nuevo Proyecto"):
@@ -236,11 +249,12 @@ if check_password():
                         'Proximas_Acciones': '', 'Observaciones': ''
                     }
                     
-                    # Añadir a la memoria temporal
-                    st.session_state.crm_db = pd.concat([st.session_state.crm_db, pd.DataFrame([nueva_fila])], ignore_index=True)
+                    # Añadir a la memoria
+                    df_nuevo = pd.DataFrame([nueva_fila])
+                    st.session_state.crm_db = pd.concat([st.session_state.crm_db, df_nuevo], ignore_index=True)
                     
-                    # GUARDAR EN GOOGLE SHEETS
-                    conn.update(spreadsheet=URL_BASE_DATOS, data=st.session_state.crm_db)
+                    # GUARDAR EN GOOGLE SHEETS VIA APPS SCRIPT
+                    guardar_datos(st.session_state.crm_db)
                     
                     st.success("Proyecto creado y guardado en Google Drive con éxito.")
                     st.session_state.vista_actual = 'resumen'
