@@ -9,7 +9,7 @@ import time
 st.set_page_config(page_title="CRM Proyectos", layout="wide")
 
 # ==========================================
-# 🎨 CSS AVANZADO: DISEÑO ELEGANTE Y PROFESIONAL
+# 🎨 CSS AVANZADO: DISEÑO PODEROSO Y EMPRESARIAL
 # ==========================================
 st.markdown("""
     <style>
@@ -23,33 +23,54 @@ st.markdown("""
         background-color: #F9F7F2; 
     }
 
-    /* Estilo de los Títulos para que sean suaves y corporativos */
+    /* Títulos generales */
     h1, h2, h3, h4 {
         color: #2C3E50 !important;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        font-weight: 400;
+        font-weight: 600;
     }
 
-    /* El título principal que va al lado del logo */
+    /* TÍTULO PANTALLA DE LOGIN GIGANTE */
+    .titulo-login {
+        font-size: 56px;
+        font-weight: 800;
+        color: #1A252F;
+        text-align: center;
+        letter-spacing: 3px;
+        margin-top: 15px;
+        margin-bottom: 0px;
+        line-height: 1.1;
+    }
+    
+    .subtitulo-login {
+        font-size: 18px;
+        font-weight: 500;
+        color: #7F8C8D;
+        text-align: center;
+        margin-bottom: 30px;
+        letter-spacing: 5px;
+    }
+
+    /* TÍTULO INTERNO MÁS IMPONENTE */
     .titulo-crm {
-        font-size: 32px;
-        font-weight: 600;
-        color: #4A5568;
+        font-size: 36px;
+        font-weight: 700;
+        color: #2C3E50;
         letter-spacing: 2px;
-        margin-top: 20px;
+        margin-top: 25px;
         margin-bottom: 0px;
     }
 
-    /* Tarjetas/Formularios blancos flotantes sobre el fondo beige */
+    /* Tarjetas y Formularios con más presencia */
     div[data-testid="stForm"] {
         background-color: #FFFFFF;
         border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.04);
+        padding: 30px;
+        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
         border: 1px solid #EBE6DF;
     }
 
-    /* Estilo de los Dataframes (Tablas) */
+    /* Tablas limpias */
     [data-testid="stDataFrame"] {
         background-color: #FFFFFF;
         border-radius: 10px;
@@ -57,16 +78,18 @@ st.markdown("""
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.03);
     }
     
-    /* Botones principales más estilizados */
+    /* Botones más grandes y profesionales */
     div.stButton > button {
-        border-radius: 8px;
-        font-weight: 500;
-        letter-spacing: 0.5px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 1px;
+        padding: 10px 24px;
         transition: all 0.3s ease;
     }
     div.stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+        box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -78,14 +101,14 @@ NOMBRE_LOGO = "logo.jpg" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GI
 URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec" # <-- PEGA TU ENLACE LARGO AQUÍ
 
 
-# --- FUNCIÓN VISUAL: CABECERA CON LOGO, TÍTULO Y BOTÓN DE SALIDA ---
-def mostrar_cabecera(mostrar_salir=False):
-    # Proporción de columnas ampliada para albergar el logo grande sin apretar
-    col_logo, col_titulo, col_salir = st.columns([2.5, 5.5, 2])
+# --- FUNCIÓN VISUAL: CABECERA INTERNA PODEROSA ---
+def mostrar_cabecera():
+    # Más espacio para el logo interno
+    col_logo, col_titulo, col_salir = st.columns([2.5, 6, 1.5])
     
     with col_logo:
         try:
-            st.image(NOMBRE_LOGO, width=180) # Logo ampliado a tamaño bien visible
+            st.image(NOMBRE_LOGO, width=240) # Logo interno mucho más grande
         except:
             st.error(f"Falta imagen: {NOMBRE_LOGO}") 
             
@@ -93,12 +116,11 @@ def mostrar_cabecera(mostrar_salir=False):
         st.markdown('<p class="titulo-crm">CRM - PROYECTOS</p>', unsafe_allow_html=True)
         
     with col_salir:
-        if mostrar_salir:
-            st.write("<br>", unsafe_allow_html=True)
-            if st.button("🚪 Cerrar Sesión", use_container_width=True):
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                st.rerun()
+        st.write("<br><br>", unsafe_allow_html=True) 
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
     
     st.markdown("---")
 
@@ -136,7 +158,8 @@ def guardar_datos(df):
     except Exception as e:
         st.error(f"⚠️ Error al enviar datos: {e}")
 
-# --- SISTEMA DE LOGIN ---
+
+# --- SISTEMA DE LOGIN DE ALTO IMPACTO ---
 def check_password():
     def password_entered():
         if st.session_state["username"] in st.secrets["passwords"] and \
@@ -146,36 +169,44 @@ def check_password():
         else:
             st.session_state["password_correct"] = False
 
-    if "password_correct" not in st.session_state:
+    if "password_correct" not in st.session_state or not st.session_state["password_correct"]:
         st.write("<br><br>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            mostrar_cabecera(mostrar_salir=False)
-            with st.form("login_form"):
-                st.markdown("#### Ingreso Seguro")
-                st.text_input("Usuario", key="username")
-                st.text_input("Contraseña", type="password", key="password")
-                st.form_submit_button("Acceder al Sistema", on_click=password_entered, use_container_width=True)
-        return False
         
-    elif not st.session_state["password_correct"]:
-        st.write("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            mostrar_cabecera(mostrar_salir=False)
-            with st.form("login_form_error"):
-                st.markdown("#### Ingreso Seguro")
+            # CENTRAMOS EL LOGO EN LA PANTALLA DE LOGIN
+            c1, c2, c3 = st.columns([1, 2, 1])
+            with c2:
+                try:
+                    # use_container_width hace que el logo ocupe el máximo espacio posible y se vea imponente
+                    st.image(NOMBRE_LOGO, use_container_width=True) 
+                except:
+                    st.error(f"Falta imagen: {NOMBRE_LOGO}")
+            
+            # TÍTULOS GIGANTES
+            st.markdown('<p class="titulo-login">CRM PROYECTOS</p>', unsafe_allow_html=True)
+            st.markdown('<p class="subtitulo-login">PLATAFORMA DE GESTIÓN Y CONTROL</p>', unsafe_allow_html=True)
+            
+            with st.form("login_form"):
+                st.markdown("### 🔐 Acceso Autorizado")
                 st.text_input("Usuario", key="username")
                 st.text_input("Contraseña", type="password", key="password")
-                st.form_submit_button("Acceder al Sistema", on_click=password_entered, use_container_width=True)
-            st.error("😕 Credenciales incorrectas. Inténtalo de nuevo.")
+                st.write("<br>", unsafe_allow_html=True)
+                st.form_submit_button("INGRESAR AL SISTEMA", on_click=password_entered, use_container_width=True)
+
+        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.error("😕 Credenciales incorrectas. Inténtalo de nuevo.")
         return False
         
     return True
 
+
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
-    mostrar_cabecera(mostrar_salir=True)
+    
+    mostrar_cabecera()
 
     if 'crm_db' not in st.session_state:
         st.session_state.crm_db = cargar_datos()
