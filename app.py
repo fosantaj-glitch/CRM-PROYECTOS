@@ -376,7 +376,10 @@ if check_password():
 
         with st.form("form_detalles"):
             st.markdown("<h5 style='color: #0F172A; font-weight: 700;'>1. Información General y Contacto</h5>", unsafe_allow_html=True)
-            c_p1, c_p2, c_p3 = st.columns(3)
+            
+            # --- NUEVA FILA DE EDICIÓN CON EL ID INCLUIDO ---
+            c_id0, c_p1, c_p2, c_p3 = st.columns([1.5, 2.5, 2, 1.5])
+            with c_id0: act_id = st.text_input("Código / ID (Editable)", value=str(st.session_state.crm_db.at[idx, 'ID_Proyecto']))
             with c_p1: act_nombre = st.text_input("Nombre de la Obra / Proyecto", value=str(st.session_state.crm_db.at[idx, 'Nombre_Proyecto']))
             with c_p2: act_cliente = st.text_input("Cliente / Razón Social", value=str(st.session_state.crm_db.at[idx, 'Cliente']))
             with c_p3: 
@@ -417,6 +420,7 @@ if check_password():
             st.write("<br>", unsafe_allow_html=True)
             if st.form_submit_button("💾 GUARDAR TODOS LOS CAMBIOS", type="primary", use_container_width=True):
                 with st.spinner("Sincronizando expediente con Google Drive... ⏳"):
+                    st.session_state.crm_db.at[idx, 'ID_Proyecto'] = act_id  # <--- GUARDANDO EL NUEVO ID
                     st.session_state.crm_db.at[idx, 'Nombre_Proyecto'] = act_nombre
                     st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
                     st.session_state.crm_db.at[idx, 'Presupuesto_$'] = act_presupuesto
