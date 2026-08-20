@@ -75,7 +75,7 @@ st.markdown("""
 # ⚙️ CONFIGURACIONES PRINCIPALES
 # ==========================================
 NOMBRE_LOGO = "logo.png" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GITHUB
-URL_WEB_APP = "Pega_tu_URL_de_Apps_Script_AQUI" # <-- PEGA TU ENLACE LARGO AQUÍ
+URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec" # <-- PEGA TU ENLACE LARGO AQUÍ
 
 
 # --- FUNCIÓN VISUAL: CABECERA CON LOGO, TÍTULO Y BOTÓN DE SALIDA ---
@@ -347,4 +347,29 @@ if check_password():
                 n_tel = st.text_input("Teléfono")
                 n_sec = st.selectbox("Sector", ["Arquitectura", "Construcción", "Consultoría", "Corretaje"])
             with c_3:
-                n_pres = st.number_input("Presupuesto Estimado
+                n_pres = st.number_input("Presupuesto Estimado ($)", min_value=0.0, value=None, format="%.2f", step=100.0)
+                n_resp = st.text_input("Responsable Asignado")
+                
+            st.write("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("✅ Crear Registro", type="primary"):
+                if n_id == "" or n_nom == "":
+                    st.error("⚠️ El Código/ID y el Nombre del Proyecto son obligatorios.")
+                else:
+                    with st.spinner("Creando expediente en la nube... ⏳"):
+                        nueva_fila = {
+                            'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Contacto': n_cont, 'Telefono_Contacto': n_tel, 
+                            'Nombre_Proyecto': n_nom, 'Sector': n_sec, 
+                            'Presupuesto_$': n_pres if n_pres is not None else 0.0, 
+                            'Avance_%': 0, 'Responsable': n_resp, 'Prioridad': 'Media', 'Fecha_Inicio': str(date.today()), 
+                            'Fecha_Cierre_Est': '', 'Estado_Detallado': '', 'Acciones_Realizadas': '', 
+                            'Proximas_Acciones': '', 'Observaciones': ''
+                        }
+                        
+                        df_nuevo = pd.DataFrame([nueva_fila])
+                        st.session_state.crm_db = pd.concat([st.session_state.crm_db, df_nuevo], ignore_index=True)
+                        guardar_datos(st.session_state.crm_db)
+                    
+                    st.success("✅ ¡El proyecto ha sido registrado y guardado con éxito!")
+                    time.sleep(2)
+                    st.session_state.vista_actual = 'resumen'
+                    st.rerun()
