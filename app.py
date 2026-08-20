@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import date
 import requests
 import json
+import time  # <-- NUEVA LIBRERÍA PARA PAUSAR EL TIEMPO
 
 # Configuración de la página
 st.set_page_config(page_title="CRM Proyectos", layout="wide")
@@ -37,13 +38,20 @@ def cargar_datos():
     ])
 
 def guardar_datos(df):
-    df_clean = df.fillna("")
-    data_list = [df_clean.columns.tolist()]
-    for row in df_clean.itertuples(index=False, name=None):
-        data_list.append(list(row))
-    
-    payload = {"action": "overwrite", "data": data_list}
-    requests.post(URL_WEB_APP, json=payload)
+    try:
+        df_clean = df.fillna("").astype(str)
+        data_list = [df_clean.columns.tolist()]
+        
+        for row in df_clean.itertuples(index=False, name=None):
+            data_list.append(list(row))
+        
+        payload = {"action": "overwrite", "data": data_list}
+        res = requests.post(URL_WEB_APP, json=payload, allow_redirects=True)
+        
+        if res.status_code not in [200, 201]:
+            st.error(f"⚠️ Google respondió con error: {res.status_code}")
+    except Exception as e:
+        st.error(f"⚠️ Error al enviar datos: {e}")
 
 # --- SISTEMA DE LOGIN ---
 def check_password():
@@ -91,7 +99,6 @@ if check_password():
         columnas_basicas = ['ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Responsable', 'Presupuesto_$', 'Avance_%']
         
         if not st.session_state.crm_db.empty:
-            # Asegurar tipos numéricos para la vista
             st.session_state.crm_db['Presupuesto_$'] = pd.to_numeric(st.session_state.crm_db['Presupuesto_$'], errors='coerce').fillna(0)
             st.session_state.crm_db['Avance_%'] = pd.to_numeric(st.session_state.crm_db['Avance_%'], errors='coerce').fillna(0).astype(int)
 
@@ -144,8 +151,11 @@ if check_password():
         with col_borrar:
             st.write("") 
             if st.button("🗑️ Borrar Proyecto"):
-                st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=True)
-                guardar_datos(st.session_state.crm_db)
+                with st.spinner("Borrando en Google Drive... ⏳"):
+                    st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=True)
+                    guardar_datos(st.session_state.crm_db)
+                st.success("✅ Proyecto borrado con éxito.")
+                time.sleep(1.5)
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
 
@@ -188,25 +198,27 @@ if check_password():
                 act_obs = st.text_area("Observaciones Adicionales", value=str(st.session_state.crm_db.at[idx, 'Observaciones']), height=120)
             
             if st.form_submit_button("💾 Guardar Todos los Cambios"):
-                st.session_state.crm_db.at[idx, 'Nombre_Proyecto'] = act_nombre
-                st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
-                st.session_state.crm_db.at[idx, 'Presupuesto_$'] = act_presupuesto
-                st.session_state.crm_db.at[idx, 'Nombre_Contacto'] = act_contacto
-                st.session_state.crm_db.at[idx, 'Telefono_Contacto'] = act_telefono
-                st.session_state.crm_db.at[idx, 'Sector'] = act_sector
-                st.session_state.crm_db.at[idx, 'Responsable'] = act_resp
-                st.session_state.crm_db.at[idx, 'Avance_%'] = act_avance
-                st.session_state.crm_db.at[idx, 'Prioridad'] = act_prio
-                st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est'] = act_cierre
-                st.session_state.crm_db.at[idx, 'Estado_Detallado'] = act_estado
-                st.session_state.crm_db.at[idx, 'Acciones_Realizadas'] = act_acciones
-                st.session_state.crm_db.at[idx, 'Proximas_Acciones'] = act_proximas
-                st.session_state.crm_db.at[idx, 'Observaciones'] = act_obs
+                with st.spinner("Guardando cambios en Google Drive... ⏳"):
+                    st.session_state.crm_db.at[idx, 'Nombre_Proyecto'] = act_nombre
+                    st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
+                    st.session_state.crm_db.at[idx, 'Presupuesto_$'] = act_presupuesto
+                    st.session_state.crm_db.at[idx, 'Nombre_Contacto'] = act_contacto
+                    st.session_state.crm_db.at[idx, 'Telefono_Contacto'] = act_telefono
+                    st.session_state.crm_db.at[idx, 'Sector'] = act_sector
+                    st.session_state.crm_db.at[idx, 'Responsable'] = act_resp
+                    st.session_state.crm_db.at[idx, 'Avance_%'] = act_avance
+                    st.session_state.crm_db.at[idx, 'Prioridad'] = act_prio
+                    st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est'] = act_cierre
+                    st.session_state.crm_db.at[idx, 'Estado_Detallado'] = act_estado
+                    st.session_state.crm_db.at[idx, 'Acciones_Realizadas'] = act_acciones
+                    st.session_state.crm_db.at[idx, 'Proximas_Acciones'] = act_proximas
+                    st.session_state.crm_db.at[idx, 'Observaciones'] = act_obs
+                    
+                    guardar_datos(st.session_state.crm_db)
                 
-                # GUARDAR EN GOOGLE SHEETS VIA APPS SCRIPT
-                guardar_datos(st.session_state.crm_db)
-                
-                st.success("Cambios guardados en Google Drive correctamente.")
+                # AHORA SÍ VERÁS EL MENSAJE POR 2 SEGUNDOS
+                st.success("✅ ¡Guardado con éxito!")
+                time.sleep(2)
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
 
@@ -240,22 +252,22 @@ if check_password():
                 if n_id == "" or n_nom == "":
                     st.error("Por favor ingresa al menos el ID y el Nombre del Proyecto.")
                 else:
-                    nueva_fila = {
-                        'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Contacto': n_cont, 'Telefono_Contacto': n_tel, 
-                        'Nombre_Proyecto': n_nom, 'Sector': n_sec, 
-                        'Presupuesto_$': n_pres if n_pres is not None else 0.0, 
-                        'Avance_%': 0, 'Responsable': n_resp, 'Prioridad': 'Media', 'Fecha_Inicio': str(date.today()), 
-                        'Fecha_Cierre_Est': '', 'Estado_Detallado': '', 'Acciones_Realizadas': '', 
-                        'Proximas_Acciones': '', 'Observaciones': ''
-                    }
+                    with st.spinner("Guardando nuevo proyecto en Google Drive... ⏳"):
+                        nueva_fila = {
+                            'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Contacto': n_cont, 'Telefono_Contacto': n_tel, 
+                            'Nombre_Proyecto': n_nom, 'Sector': n_sec, 
+                            'Presupuesto_$': n_pres if n_pres is not None else 0.0, 
+                            'Avance_%': 0, 'Responsable': n_resp, 'Prioridad': 'Media', 'Fecha_Inicio': str(date.today()), 
+                            'Fecha_Cierre_Est': '', 'Estado_Detallado': '', 'Acciones_Realizadas': '', 
+                            'Proximas_Acciones': '', 'Observaciones': ''
+                        }
+                        
+                        df_nuevo = pd.DataFrame([nueva_fila])
+                        st.session_state.crm_db = pd.concat([st.session_state.crm_db, df_nuevo], ignore_index=True)
+                        guardar_datos(st.session_state.crm_db)
                     
-                    # Añadir a la memoria
-                    df_nuevo = pd.DataFrame([nueva_fila])
-                    st.session_state.crm_db = pd.concat([st.session_state.crm_db, df_nuevo], ignore_index=True)
-                    
-                    # GUARDAR EN GOOGLE SHEETS VIA APPS SCRIPT
-                    guardar_datos(st.session_state.crm_db)
-                    
-                    st.success("Proyecto creado y guardado en Google Drive con éxito.")
+                    # AHORA SÍ VERÁS EL MENSAJE POR 2 SEGUNDOS
+                    st.success("✅ ¡Proyecto creado y guardado con éxito!")
+                    time.sleep(2)
                     st.session_state.vista_actual = 'resumen'
                     st.rerun()
