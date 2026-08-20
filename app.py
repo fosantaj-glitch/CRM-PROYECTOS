@@ -3,22 +3,98 @@ import pandas as pd
 from datetime import date
 import requests
 import json
-import time  # <-- NUEVA LIBRERÍA PARA PAUSAR EL TIEMPO
+import time
 
 # Configuración de la página
 st.set_page_config(page_title="CRM Proyectos", layout="wide")
 
-# --- CSS PARA DISEÑO LIMPIO ---
+# ==========================================
+# 🎨 CSS AVANZADO: DISEÑO ELEGANTE Y PROFESIONAL
+# ==========================================
 st.markdown("""
     <style>
+    /* Ocultar elementos por defecto de Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+
+    /* Fondo general de la app: Beige/Hueso muy sutil y elegante */
+    [data-testid="stAppViewContainer"] {
+        background-color: #F9F7F2; 
+    }
+
+    /* Estilo de los Títulos para que sean suaves y corporativos */
+    h1, h2, h3, h4 {
+        color: #2C3E50 !important;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 400;
+    }
+
+    /* El título principal que va al lado del logo */
+    .titulo-crm {
+        font-size: 28px;
+        font-weight: 600;
+        color: #4A5568;
+        letter-spacing: 2px;
+        margin-top: 15px; /* Alineación vertical con el logo */
+        margin-bottom: 0px;
+    }
+
+    /* Tarjetas/Formularios blancos flotantes sobre el fondo beige */
+    div[data-testid="stForm"] {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid #EBE6DF;
+    }
+
+    /* Estilo de los Dataframes (Tablas) */
+    [data-testid="stDataFrame"] {
+        background-color: #FFFFFF;
+        border-radius: 10px;
+        padding: 10px;
+        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.03);
+    }
+    
+    /* Botones principales más estilizados */
+    div.stButton > button:first-child {
+        border-radius: 8px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+    }
+    div.stButton > button:first-child:hover {
+        transform: translateY(-2px);
+        box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# PEGA AQUÍ TU ENLACE DE APPS SCRIPT
-URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec"
+# ==========================================
+# ⚙️ CONFIGURACIONES PRINCIPALES
+# ==========================================
+NOMBRE_LOGO = "logo.png" # <-- ASEGÚRATE DE QUE EL NOMBRE SEA EXACTO AL DE GITHUB
+URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec" # <-- PEGA TU ENLACE LARGO AQUÍ
+
+
+# --- FUNCIÓN VISUAL: CABECERA CON LOGO Y TÍTULO ---
+def mostrar_cabecera():
+    # Usamos columnas ajustadas: el logo ocupa poco espacio, el título el resto
+    col_logo, col_titulo = st.columns([1, 10])
+    
+    with col_logo:
+        try:
+            st.image(NOMBRE_LOGO, width=80) # Logo compacto y elegante
+        except:
+            pass # Si no encuentra el logo, no muestra error feo, solo lo omite
+            
+    with col_titulo:
+        # Texto con estilo CSS inyectado
+        st.markdown('<p class="titulo-crm">CRM - PROYECTOS</p>', unsafe_allow_html=True)
+    
+    st.markdown("---") # Línea divisoria
+
 
 # --- FUNCIONES DE BASE DE DATOS (Apps Script) ---
 def cargar_datos():
@@ -64,22 +140,40 @@ def check_password():
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
-        st.title("🔒 Acceso al CRM")
-        st.text_input("Usuario", key="username")
-        st.text_input("Contraseña", type="password", key="password")
-        st.button("Ingresar", on_click=password_entered)
+        # PANTALLA DE LOGIN CON DISEÑO
+        st.write("<br><br>", unsafe_allow_html=True) # Espaciado superior
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            mostrar_cabecera()
+            with st.form("login_form"):
+                st.markdown("#### Ingreso Seguro")
+                st.text_input("Usuario", key="username")
+                st.text_input("Contraseña", type="password", key="password")
+                st.form_submit_button("Acceder al Sistema", on_click=password_entered, use_container_width=True)
         return False
+        
     elif not st.session_state["password_correct"]:
-        st.title("🔒 Acceso al CRM")
-        st.text_input("Usuario", key="username")
-        st.text_input("Contraseña", type="password", key="password")
-        st.button("Ingresar", on_click=password_entered)
-        st.error("😕 Usuario o contraseña incorrectos")
+        # PANTALLA DE ERROR EN LOGIN
+        st.write("<br><br>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            mostrar_cabecera()
+            with st.form("login_form_error"):
+                st.markdown("#### Ingreso Seguro")
+                st.text_input("Usuario", key="username")
+                st.text_input("Contraseña", type="password", key="password")
+                st.form_submit_button("Acceder al Sistema", on_click=password_entered, use_container_width=True)
+            st.error("😕 Credenciales incorrectas. Inténtalo de nuevo.")
         return False
+        
     return True
 
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
+    
+    # 0. Mostrar Cabecera Profesional en todas las páginas internas
+    mostrar_cabecera()
+
     # 1. Cargar Base de Datos
     if 'crm_db' not in st.session_state:
         st.session_state.crm_db = cargar_datos()
@@ -94,7 +188,7 @@ if check_password():
     # VISTA 1: RESUMEN GENERAL 
     # ====================================================
     if st.session_state.vista_actual == 'resumen':
-        st.title("📊 Resumen General de Proyectos")
+        st.markdown("### 📊 Resumen General")
         
         columnas_basicas = ['ID_Proyecto', 'Cliente', 'Nombre_Proyecto', 'Sector', 'Responsable', 'Presupuesto_$', 'Avance_%']
         
@@ -114,11 +208,10 @@ if check_password():
         else:
             st.info("No hay proyectos registrados en tu base de datos todavía.")
 
-        st.markdown("---")
-        
+        st.write("<br>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("### 🔍 Ver Detalles de Proyecto")
+            st.markdown("#### 🔍 Ver Detalles de Proyecto")
             lista_ids = st.session_state.crm_db['ID_Proyecto'].dropna().tolist() if not st.session_state.crm_db.empty else []
             
             if lista_ids:
@@ -129,9 +222,9 @@ if check_password():
                     st.rerun()
                 
         with col2:
-            st.markdown("### ➕ Registrar")
-            st.write("Abre el formulario para crear un nuevo proyecto.")
-            if st.button("➕ CREAR NUEVO PROYECTO", type="primary"):
+            st.markdown("#### ➕ Nuevo Registro")
+            st.write("Abre el formulario para ingresar una nueva obra o proyecto.")
+            if st.button("➕ Crear Proyecto", type="primary"):
                 st.session_state.vista_actual = 'nuevo'
                 st.rerun()
 
@@ -147,20 +240,20 @@ if check_password():
         
         col_tit, col_borrar = st.columns([4, 1])
         with col_tit:
-            st.title(f"📂 Editando ID: {st.session_state.proyecto_activo}")
+            st.markdown(f"### 📂 Ficha del Proyecto: **{st.session_state.proyecto_activo}**")
         with col_borrar:
             st.write("") 
             if st.button("🗑️ Borrar Proyecto"):
-                with st.spinner("Borrando en Google Drive... ⏳"):
+                with st.spinner("Borrando registro... ⏳"):
                     st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=True)
                     guardar_datos(st.session_state.crm_db)
-                st.success("✅ Proyecto borrado con éxito.")
+                st.success("✅ Proyecto borrado.")
                 time.sleep(1.5)
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
 
         with st.form("form_detalles"):
-            st.markdown("#### 1. Datos Principales y Contacto")
+            st.markdown("#### Datos Principales")
             c_p1, c_p2, c_p3 = st.columns(3)
             with c_p1: act_nombre = st.text_input("Nombre del Proyecto", value=str(st.session_state.crm_db.at[idx, 'Nombre_Proyecto']))
             with c_p2: act_cliente = st.text_input("Cliente / Empresa", value=str(st.session_state.crm_db.at[idx, 'Cliente']))
@@ -170,7 +263,7 @@ if check_password():
                 act_presupuesto = st.number_input("Presupuesto ($)", min_value=0.0, value=val_presupuesto, format="%.2f", step=100.0)
 
             c_id1, c_id2, c_id3, c_id4 = st.columns(4)
-            with c_id1: act_contacto = st.text_input("Nombre de Contacto", value=str(st.session_state.crm_db.at[idx, 'Nombre_Contacto']))
+            with c_id1: act_contacto = st.text_input("Contacto Directo", value=str(st.session_state.crm_db.at[idx, 'Nombre_Contacto']))
             with c_id2: act_telefono = st.text_input("Teléfono", value=str(st.session_state.crm_db.at[idx, 'Telefono_Contacto']))
             with c_id3: 
                 sectores = ["Arquitectura", "Construcción", "Consultoría", "Corretaje"]
@@ -178,27 +271,28 @@ if check_password():
                 act_sector = st.selectbox("Sector", sectores, index=sectores.index(sect_actual) if sect_actual in sectores else 0)
             with c_id4: act_resp = st.text_input("Responsable", value=str(st.session_state.crm_db.at[idx, 'Responsable']))
 
-            st.markdown("#### 2. Estado y Planificación")
+            st.markdown("#### Planificación y Avance")
             c1, c2, c3 = st.columns(3)
             try: val_avance = int(st.session_state.crm_db.at[idx, 'Avance_%'])
             except: val_avance = 0
-            with c1: act_avance = st.number_input("Avance (%)", 0, 100, val_avance)
+            with c1: act_avance = st.number_input("Porcentaje de Avance (%)", 0, 100, val_avance)
             with c2: 
                 prio_actual = str(st.session_state.crm_db.at[idx, 'Prioridad'])
-                act_prio = st.selectbox("Prioridad", ["Alta", "Media", "Baja"], index=["Alta", "Media", "Baja"].index(prio_actual) if prio_actual in ["Alta", "Media", "Baja"] else 1)
-            with c3: act_cierre = st.text_input("Fecha Cierre Est.", value=str(st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est']))
+                act_prio = st.selectbox("Prioridad Operativa", ["Alta", "Media", "Baja"], index=["Alta", "Media", "Baja"].index(prio_actual) if prio_actual in ["Alta", "Media", "Baja"] else 1)
+            with c3: act_cierre = st.text_input("Fecha Estimada de Cierre", value=str(st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est']))
             
-            st.markdown("#### 3. Control de Ejecución")
+            st.markdown("#### Bitácora de Ejecución")
             colA, colB = st.columns(2)
             with colA:
-                act_estado = st.text_area("Estado Actual", value=str(st.session_state.crm_db.at[idx, 'Estado_Detallado']), height=120)
-                act_acciones = st.text_area("Acciones Realizadas", value=str(st.session_state.crm_db.at[idx, 'Acciones_Realizadas']), height=120)
+                act_estado = st.text_area("Estado Actual del Proyecto", value=str(st.session_state.crm_db.at[idx, 'Estado_Detallado']), height=100)
+                act_acciones = st.text_area("Acciones Realizadas", value=str(st.session_state.crm_db.at[idx, 'Acciones_Realizadas']), height=100)
             with colB:
-                act_proximas = st.text_area("Próximas Acciones", value=str(st.session_state.crm_db.at[idx, 'Proximas_Acciones']), height=120)
-                act_obs = st.text_area("Observaciones Adicionales", value=str(st.session_state.crm_db.at[idx, 'Observaciones']), height=120)
+                act_proximas = st.text_area("Próximos Pasos", value=str(st.session_state.crm_db.at[idx, 'Proximas_Acciones']), height=100)
+                act_obs = st.text_area("Observaciones Generales", value=str(st.session_state.crm_db.at[idx, 'Observaciones']), height=100)
             
-            if st.form_submit_button("💾 Guardar Todos los Cambios"):
-                with st.spinner("Guardando cambios en Google Drive... ⏳"):
+            st.write("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("💾 Guardar Cambios", type="primary"):
+                with st.spinner("Sincronizando con la nube... ⏳"):
                     st.session_state.crm_db.at[idx, 'Nombre_Proyecto'] = act_nombre
                     st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
                     st.session_state.crm_db.at[idx, 'Presupuesto_$'] = act_presupuesto
@@ -216,8 +310,7 @@ if check_password():
                     
                     guardar_datos(st.session_state.crm_db)
                 
-                # AHORA SÍ VERÁS EL MENSAJE POR 2 SEGUNDOS
-                st.success("✅ ¡Guardado con éxito!")
+                st.success("✅ ¡Actualización guardada con éxito!")
                 time.sleep(2)
                 st.session_state.vista_actual = 'resumen'
                 st.rerun()
@@ -230,14 +323,14 @@ if check_password():
             st.session_state.vista_actual = 'resumen'
             st.rerun()
             
-        st.title("➕ Crear Nuevo Proyecto")
+        st.markdown("### ➕ Registrar Nuevo Proyecto")
         
         with st.form("form_nuevo_proyecto"):
-            st.markdown("### Datos Básicos del Nuevo Proyecto")
+            st.markdown("#### Datos Básicos")
             
             c_1, c_2, c_3 = st.columns(3)
             with c_1:
-                n_id = st.text_input("ID Proyecto")
+                n_id = st.text_input("Código / ID Proyecto")
                 n_cli = st.text_input("Cliente / Empresa")
                 n_nom = st.text_input("Nombre del Proyecto")
             with c_2:
@@ -245,29 +338,15 @@ if check_password():
                 n_tel = st.text_input("Teléfono")
                 n_sec = st.selectbox("Sector", ["Arquitectura", "Construcción", "Consultoría", "Corretaje"])
             with c_3:
-                n_pres = st.number_input("Presupuesto ($)", min_value=0.0, value=None, format="%.2f", step=100.0)
-                n_resp = st.text_input("Responsable")
+                n_pres = st.number_input("Presupuesto Estimado ($)", min_value=0.0, value=None, format="%.2f", step=100.0)
+                n_resp = st.text_input("Responsable Asignado")
                 
-            if st.form_submit_button("✅ Guardar Nuevo Proyecto"):
+            st.write("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("✅ Crear Registro", type="primary"):
                 if n_id == "" or n_nom == "":
-                    st.error("Por favor ingresa al menos el ID y el Nombre del Proyecto.")
+                    st.error("⚠️ El Código/ID y el Nombre del Proyecto son obligatorios.")
                 else:
-                    with st.spinner("Guardando nuevo proyecto en Google Drive... ⏳"):
+                    with st.spinner("Creando expediente en la nube... ⏳"):
                         nueva_fila = {
                             'ID_Proyecto': n_id, 'Cliente': n_cli, 'Nombre_Contacto': n_cont, 'Telefono_Contacto': n_tel, 
-                            'Nombre_Proyecto': n_nom, 'Sector': n_sec, 
-                            'Presupuesto_$': n_pres if n_pres is not None else 0.0, 
-                            'Avance_%': 0, 'Responsable': n_resp, 'Prioridad': 'Media', 'Fecha_Inicio': str(date.today()), 
-                            'Fecha_Cierre_Est': '', 'Estado_Detallado': '', 'Acciones_Realizadas': '', 
-                            'Proximas_Acciones': '', 'Observaciones': ''
-                        }
-                        
-                        df_nuevo = pd.DataFrame([nueva_fila])
-                        st.session_state.crm_db = pd.concat([st.session_state.crm_db, df_nuevo], ignore_index=True)
-                        guardar_datos(st.session_state.crm_db)
-                    
-                    # AHORA SÍ VERÁS EL MENSAJE POR 2 SEGUNDOS
-                    st.success("✅ ¡Proyecto creado y guardado con éxito!")
-                    time.sleep(2)
-                    st.session_state.vista_actual = 'resumen'
-                    st.rerun()
+                            'Nombre_Proyecto': n_nom, 'Sector': n_sec,
