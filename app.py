@@ -58,13 +58,13 @@ st.markdown("""
     }
     
     /* Botones principales más estilizados */
-    div.stButton > button:first-child {
+    div.stButton > button {
         border-radius: 8px;
         font-weight: 500;
         letter-spacing: 0.5px;
         transition: all 0.3s ease;
     }
-    div.stButton > button:first-child:hover {
+    div.stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
     }
@@ -74,24 +74,33 @@ st.markdown("""
 # ==========================================
 # ⚙️ CONFIGURACIONES PRINCIPALES
 # ==========================================
-NOMBRE_LOGO = "logo.png" # <-- ASEGÚRATE DE QUE EL NOMBRE SEA EXACTO AL DE GITHUB
+NOMBRE_LOGO = "logo.png" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GITHUB
 URL_WEB_APP = "Pega_tu_URL_de_Apps_Script_AQUI" # <-- PEGA TU ENLACE LARGO AQUÍ
 
 
-# --- FUNCIÓN VISUAL: CABECERA CON LOGO Y TÍTULO ---
-def mostrar_cabecera():
-    # Usamos columnas ajustadas: el logo ocupa poco espacio, el título el resto
-    col_logo, col_titulo = st.columns([1, 10])
+# --- FUNCIÓN VISUAL: CABECERA CON LOGO, TÍTULO Y BOTÓN DE SALIDA ---
+def mostrar_cabecera(mostrar_salir=False):
+    # Creamos tres columnas: logo (izquierda), título (centro), y botón de salir (derecha)
+    col_logo, col_titulo, col_salir = st.columns([1, 7, 2])
     
     with col_logo:
         try:
-            st.image(NOMBRE_LOGO, width=80) # Logo compacto y elegante
+            st.image(NOMBRE_LOGO, width=80) 
         except:
-            pass # Si no encuentra el logo, no muestra error feo, solo lo omite
+            # Si falla, ahora te avisará exactamente qué archivo está buscando
+            st.error(f"Falta imagen: {NOMBRE_LOGO}") 
             
     with col_titulo:
-        # Texto con estilo CSS inyectado
         st.markdown('<p class="titulo-crm">CRM - PROYECTOS</p>', unsafe_allow_html=True)
+        
+    with col_salir:
+        if mostrar_salir:
+            st.write("<br>", unsafe_allow_html=True) # Empujamos el botón hacia abajo para alinearlo
+            if st.button("🚪 Cerrar Sesión", use_container_width=True):
+                # Borrar credenciales y memoria temporal
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
     
     st.markdown("---") # Línea divisoria
 
@@ -144,7 +153,7 @@ def check_password():
         st.write("<br><br>", unsafe_allow_html=True) # Espaciado superior
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            mostrar_cabecera()
+            mostrar_cabecera(mostrar_salir=False) # Cabecera sin botón de salir
             with st.form("login_form"):
                 st.markdown("#### Ingreso Seguro")
                 st.text_input("Usuario", key="username")
@@ -157,7 +166,7 @@ def check_password():
         st.write("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            mostrar_cabecera()
+            mostrar_cabecera(mostrar_salir=False) # Cabecera sin botón de salir
             with st.form("login_form_error"):
                 st.markdown("#### Ingreso Seguro")
                 st.text_input("Usuario", key="username")
@@ -171,8 +180,8 @@ def check_password():
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
     
-    # 0. Mostrar Cabecera Profesional en todas las páginas internas
-    mostrar_cabecera()
+    # 0. Mostrar Cabecera Profesional en todas las páginas internas (SÍ MOSTRAR BOTÓN SALIR)
+    mostrar_cabecera(mostrar_salir=True)
 
     # 1. Cargar Base de Datos
     if 'crm_db' not in st.session_state:
@@ -245,90 +254,4 @@ if check_password():
             st.write("") 
             if st.button("🗑️ Borrar Proyecto"):
                 with st.spinner("Borrando registro... ⏳"):
-                    st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=True)
-                    guardar_datos(st.session_state.crm_db)
-                st.success("✅ Proyecto borrado.")
-                time.sleep(1.5)
-                st.session_state.vista_actual = 'resumen'
-                st.rerun()
-
-        with st.form("form_detalles"):
-            st.markdown("#### Datos Principales")
-            c_p1, c_p2, c_p3 = st.columns(3)
-            with c_p1: act_nombre = st.text_input("Nombre del Proyecto", value=str(st.session_state.crm_db.at[idx, 'Nombre_Proyecto']))
-            with c_p2: act_cliente = st.text_input("Cliente / Empresa", value=str(st.session_state.crm_db.at[idx, 'Cliente']))
-            with c_p3: 
-                try: val_presupuesto = float(st.session_state.crm_db.at[idx, 'Presupuesto_$'])
-                except: val_presupuesto = 0.0
-                act_presupuesto = st.number_input("Presupuesto ($)", min_value=0.0, value=val_presupuesto, format="%.2f", step=100.0)
-
-            c_id1, c_id2, c_id3, c_id4 = st.columns(4)
-            with c_id1: act_contacto = st.text_input("Contacto Directo", value=str(st.session_state.crm_db.at[idx, 'Nombre_Contacto']))
-            with c_id2: act_telefono = st.text_input("Teléfono", value=str(st.session_state.crm_db.at[idx, 'Telefono_Contacto']))
-            with c_id3: 
-                sectores = ["Arquitectura", "Construcción", "Consultoría", "Corretaje"]
-                sect_actual = str(st.session_state.crm_db.at[idx, 'Sector'])
-                act_sector = st.selectbox("Sector", sectores, index=sectores.index(sect_actual) if sect_actual in sectores else 0)
-            with c_id4: act_resp = st.text_input("Responsable", value=str(st.session_state.crm_db.at[idx, 'Responsable']))
-
-            st.markdown("#### Planificación y Avance")
-            c1, c2, c3 = st.columns(3)
-            try: val_avance = int(st.session_state.crm_db.at[idx, 'Avance_%'])
-            except: val_avance = 0
-            with c1: act_avance = st.number_input("Porcentaje de Avance (%)", 0, 100, val_avance)
-            with c2: 
-                prio_actual = str(st.session_state.crm_db.at[idx, 'Prioridad'])
-                act_prio = st.selectbox("Prioridad Operativa", ["Alta", "Media", "Baja"], index=["Alta", "Media", "Baja"].index(prio_actual) if prio_actual in ["Alta", "Media", "Baja"] else 1)
-            with c3: act_cierre = st.text_input("Fecha Estimada de Cierre", value=str(st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est']))
-            
-            st.markdown("#### Bitácora de Ejecución")
-            colA, colB = st.columns(2)
-            with colA:
-                act_estado = st.text_area("Estado Actual del Proyecto", value=str(st.session_state.crm_db.at[idx, 'Estado_Detallado']), height=100)
-                act_acciones = st.text_area("Acciones Realizadas", value=str(st.session_state.crm_db.at[idx, 'Acciones_Realizadas']), height=100)
-            with colB:
-                act_proximas = st.text_area("Próximos Pasos", value=str(st.session_state.crm_db.at[idx, 'Proximas_Acciones']), height=100)
-                act_obs = st.text_area("Observaciones Generales", value=str(st.session_state.crm_db.at[idx, 'Observaciones']), height=100)
-            
-            st.write("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("💾 Guardar Cambios", type="primary"):
-                with st.spinner("Sincronizando con la nube... ⏳"):
-                    st.session_state.crm_db.at[idx, 'Nombre_Proyecto'] = act_nombre
-                    st.session_state.crm_db.at[idx, 'Cliente'] = act_cliente
-                    st.session_state.crm_db.at[idx, 'Presupuesto_$'] = act_presupuesto
-                    st.session_state.crm_db.at[idx, 'Nombre_Contacto'] = act_contacto
-                    st.session_state.crm_db.at[idx, 'Telefono_Contacto'] = act_telefono
-                    st.session_state.crm_db.at[idx, 'Sector'] = act_sector
-                    st.session_state.crm_db.at[idx, 'Responsable'] = act_resp
-                    st.session_state.crm_db.at[idx, 'Avance_%'] = act_avance
-                    st.session_state.crm_db.at[idx, 'Prioridad'] = act_prio
-                    st.session_state.crm_db.at[idx, 'Fecha_Cierre_Est'] = act_cierre
-                    st.session_state.crm_db.at[idx, 'Estado_Detallado'] = act_estado
-                    st.session_state.crm_db.at[idx, 'Acciones_Realizadas'] = act_acciones
-                    st.session_state.crm_db.at[idx, 'Proximas_Acciones'] = act_proximas
-                    st.session_state.crm_db.at[idx, 'Observaciones'] = act_obs
-                    
-                    guardar_datos(st.session_state.crm_db)
-                
-                st.success("✅ ¡Actualización guardada con éxito!")
-                time.sleep(2)
-                st.session_state.vista_actual = 'resumen'
-                st.rerun()
-
-    # ====================================================
-    # VISTA 3: CREAR NUEVO PROYECTO
-    # ====================================================
-    elif st.session_state.vista_actual == 'nuevo':
-        if st.button("🔙 Volver al Resumen"):
-            st.session_state.vista_actual = 'resumen'
-            st.rerun()
-            
-        st.markdown("### ➕ Registrar Nuevo Proyecto")
-        
-        with st.form("form_nuevo_proyecto"):
-            st.markdown("#### Datos Básicos")
-            
-            c_1, c_2, c_3 = st.columns(3)
-            with c_1:
-                n_id = st.text_input("Código / ID Proyecto")
-                n_cli = st.text_input("Cliente / Empresa")
+                    st.session_state.crm_db = st.session_state.crm_db.drop(idx).reset_index(drop=
