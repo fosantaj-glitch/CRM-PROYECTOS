@@ -32,11 +32,11 @@ st.markdown("""
 
     /* El título principal que va al lado del logo */
     .titulo-crm {
-        font-size: 28px;
+        font-size: 32px;
         font-weight: 600;
         color: #4A5568;
         letter-spacing: 2px;
-        margin-top: 15px; /* Alineación vertical con el logo */
+        margin-top: 20px;
         margin-bottom: 0px;
     }
 
@@ -74,20 +74,19 @@ st.markdown("""
 # ==========================================
 # ⚙️ CONFIGURACIONES PRINCIPALES
 # ==========================================
-NOMBRE_LOGO = "logo.jpg" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GITHUB
+NOMBRE_LOGO = "logo.png" # <-- REVISA MAYÚSCULAS Y MINÚSCULAS EXACTAS DE TU GITHUB
 URL_WEB_APP = "https://script.google.com/macros/s/AKfycbxvYHu0QM4CGbxk-0Ex2JIwWjDk7Ui6l1FgV2E1ygfAnfJlf-DTVfJfKQ7GffegFEHU/exec" # <-- PEGA TU ENLACE LARGO AQUÍ
 
 
 # --- FUNCIÓN VISUAL: CABECERA CON LOGO, TÍTULO Y BOTÓN DE SALIDA ---
 def mostrar_cabecera(mostrar_salir=False):
-    # Creamos tres columnas: logo (izquierda), título (centro), y botón de salir (derecha)
-    col_logo, col_titulo, col_salir = st.columns([1, 7, 2])
+    # Proporción de columnas ampliada para albergar el logo grande sin apretar
+    col_logo, col_titulo, col_salir = st.columns([2.5, 5.5, 2])
     
     with col_logo:
         try:
-            st.image(NOMBRE_LOGO, width=80) 
+            st.image(NOMBRE_LOGO, width=180) # Logo ampliado a tamaño bien visible
         except:
-            # Si falla, ahora te avisará exactamente qué archivo está buscando
             st.error(f"Falta imagen: {NOMBRE_LOGO}") 
             
     with col_titulo:
@@ -95,14 +94,13 @@ def mostrar_cabecera(mostrar_salir=False):
         
     with col_salir:
         if mostrar_salir:
-            st.write("<br>", unsafe_allow_html=True) # Empujamos el botón hacia abajo para alinearlo
+            st.write("<br>", unsafe_allow_html=True)
             if st.button("🚪 Cerrar Sesión", use_container_width=True):
-                # Borrar credenciales y memoria temporal
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
                 st.rerun()
     
-    st.markdown("---") # Línea divisoria
+    st.markdown("---")
 
 
 # --- FUNCIONES DE BASE DE DATOS (Apps Script) ---
@@ -149,11 +147,10 @@ def check_password():
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
-        # PANTALLA DE LOGIN CON DISEÑO
-        st.write("<br><br>", unsafe_allow_html=True) # Espaciado superior
+        st.write("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            mostrar_cabecera(mostrar_salir=False) # Cabecera sin botón de salir
+            mostrar_cabecera(mostrar_salir=False)
             with st.form("login_form"):
                 st.markdown("#### Ingreso Seguro")
                 st.text_input("Usuario", key="username")
@@ -162,11 +159,10 @@ def check_password():
         return False
         
     elif not st.session_state["password_correct"]:
-        # PANTALLA DE ERROR EN LOGIN
         st.write("<br><br>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            mostrar_cabecera(mostrar_salir=False) # Cabecera sin botón de salir
+            mostrar_cabecera(mostrar_salir=False)
             with st.form("login_form_error"):
                 st.markdown("#### Ingreso Seguro")
                 st.text_input("Usuario", key="username")
@@ -179,15 +175,11 @@ def check_password():
 
 # --- EJECUCIÓN DEL CRM ---
 if check_password():
-    
-    # 0. Mostrar Cabecera Profesional en todas las páginas internas (SÍ MOSTRAR BOTÓN SALIR)
     mostrar_cabecera(mostrar_salir=True)
 
-    # 1. Cargar Base de Datos
     if 'crm_db' not in st.session_state:
         st.session_state.crm_db = cargar_datos()
 
-    # 2. Control de Vistas
     if 'vista_actual' not in st.session_state:
         st.session_state.vista_actual = 'resumen'
     if 'proyecto_activo' not in st.session_state:
