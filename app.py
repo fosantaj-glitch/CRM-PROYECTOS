@@ -318,4 +318,27 @@ if check_password():
                 column_config={
                     "ID_Proyecto": st.column_config.TextColumn("ID / Código"),
                     "Nombre_Proyecto": st.column_config.TextColumn("Nombre del Proyecto"),
-                    "Presupuesto_$":
+                    "Presupuesto_$": st.column_config.NumberColumn("Presupuesto ($)", format="$ %,.2f"),
+                    "Avance_%": st.column_config.ProgressColumn("Avance Ejecutado (%)", format="%d%%", min_value=0, max_value=100)
+                }
+            )
+        else:
+            st.info("ℹ️ No hay proyectos registrados en tu base de datos todavía.")
+
+        st.write("<br><br>", unsafe_allow_html=True)
+        
+        # --- ACCIONES PRINCIPALES ---
+        col_det, col_crear = st.columns(2)
+        
+        with col_det:
+            st.markdown("<h4 style='color: #0F172A; font-weight: 700;'>🔍 Inspeccionar Ficha de Proyecto</h4>", unsafe_allow_html=True)
+            lista_ids = st.session_state.crm_db['ID_Proyecto'].dropna().tolist() if not st.session_state.crm_db.empty else []
+            
+            if lista_ids:
+                seleccion = st.selectbox("Seleccione el Proyecto por Código ID:", lista_ids)
+                if st.button("➡️ INGRESAR A LA FICHA TÉCNICA", type="primary"):
+                    st.session_state.proyecto_activo = seleccion
+                    st.session_state.vista_actual = 'detalles'
+                    st.rerun()
+            else:
+                st.write("Registra un proyecto para
